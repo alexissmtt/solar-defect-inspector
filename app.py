@@ -1,4 +1,3 @@
-
 import streamlit as st
 import torch
 from torchvision import transforms, models
@@ -6,10 +5,12 @@ from torch import nn
 from PIL import Image
 from groq import Groq
 import os
+import urllib.request
 
-# Load model
 @st.cache_resource
 def load_model():
+    url = "https://huggingface.co/Alexissmt/solar-defect-inspector/resolve/main/solar_model.pth"
+    urllib.request.urlretrieve(url, "solar_model.pth")
     model = models.resnet50(weights=None)
     model.fc = nn.Linear(model.fc.in_features, 6)
     model.load_state_dict(torch.load("solar_model.pth", map_location="cpu"))
@@ -47,7 +48,6 @@ Be concise, max 5 sentences."""
     )
     return response.choices[0].message.content
 
-# UI
 st.title("Solar Defect Inspector")
 st.write("Upload a solar panel image to detect defects and generate a maintenance report.")
 
@@ -55,11 +55,9 @@ uploaded = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded:
     image = Image.open(uploaded).convert("RGB")
-    st.image(image, caption="Uploaded image", use_column_width=True)
-
+    st.image(image, caption="Uploaded image", use_container_width=True)
     model = load_model()
     defect, confidence = predict(image, model)
-
     st.subheader("Detection Result")
     if defect == "Clean":
         st.success(f"No defect detected ({confidence:.1f}% confidence)")
