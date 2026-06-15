@@ -14,6 +14,16 @@ stages on 1,574 labelled images). This repository is about everything around the
 model: turning a notebook prototype into a service you can run, test, deploy and
 monitor.
 
+## Live demo
+
+Deployed on **Google Cloud Run**:
+**https://solar-inspector-573581836600.europe-west1.run.app**
+— interactive API docs at
+[`/docs`](https://solar-inspector-573581836600.europe-west1.run.app/docs).
+
+> The service runs the fine-tuned model and scales to zero, so the first request
+> after an idle period takes a few seconds to warm up.
+
 ## Architecture
 
 The inspection logic does not depend on how it is delivered. A single core is
