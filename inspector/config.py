@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./inspector.db"
     auto_create_tables: bool = True  # set False in prod; use alembic instead
 
+    # reject uploads larger than this (guards against memory-exhaustion DoS)
+    max_upload_bytes: int = 10 * 1024 * 1024
+
     # classifier: "torch" loads the fine-tuned ResNet-50, "stub" is deterministic
     classifier_backend: str = "stub"
     model_repo: str = "Alexissmt/solar-defect-inspector"

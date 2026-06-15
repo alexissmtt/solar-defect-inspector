@@ -58,3 +58,34 @@ def test_metrics_endpoint(client):
     response = client.get("/metrics")
     assert response.status_code == 200
     assert b"inspector_inspections_total" in response.content
+
+
+def test_inspect_runs_off_the_event_loop(client, monkeypatch):
+    # The blocking inference must be handed to the threadpool, not run inline.
+    import inspector.api as api_module
+
+    real = api_module.run_in_threadpool
+    seen = {}
+
+    async def spy(func, *args, **kwargs):
+        seen["offloaded"] = True
+        return await real(func, *args, **kwargs)
+
+    monkeypatch.setattr(api_module, "run_in_threadpool", spy)
+    response = client.post(
+        "/inspect", files={"file": ("p.png", make_image_bytes(), "image/png")}
+    )
+    assert response.status_code == 200
+    assert seen.get("offloaded") is True
+
+
+def test_inspect_rejects_oversized_upload(tmp_path):
+    from inspector.config import Settings
+
+    settings = Settings(
+        database_url=f"sqlite:///{tmp_path / 'big.db'}", max_upload_bytes=10
+    )
+    client = TestClient(create_app(settings))
+    payload = make_image_bytes(size=(256, 256))  # any real PNG exceeds 10 bytes
+    response = client.post("/inspect", files={"file": ("big.png", payload, "image/png")})
+    assert response.status_code == 413

@@ -17,6 +17,7 @@ import io
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse
 from PIL import Image, UnidentifiedImageError
 
@@ -77,13 +78,17 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         service: InspectionService = Depends(get_service),
     ) -> InspectionOut:
         raw = await file.read()
+        if len(raw) > settings.max_upload_bytes:
+            raise HTTPException(status_code=413, detail="Uploaded image is too large")
         try:
             image = Image.open(io.BytesIO(raw)).convert("RGB")
-        except UnidentifiedImageError:
+        except (UnidentifiedImageError, Image.DecompressionBombError):
             raise HTTPException(
                 status_code=400, detail="Uploaded file is not a valid image"
             ) from None
-        record = service.inspect(image, source="api", image_name=file.filename)
+        # Inference is CPU-bound and synchronous; run it off the event loop so a
+        # slow prediction does not block other requests.
+        record = await run_in_threadpool(service.inspect, image, "api", file.filename)
         return InspectionOut.model_validate(record)
 
     @app.get("/inspections", response_model=List[InspectionOut])

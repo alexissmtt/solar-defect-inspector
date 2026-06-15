@@ -32,10 +32,12 @@ class Inspection(Base):
     __tablename__ = "inspections"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, index=True
+    )
     source: Mapped[str] = mapped_column(String(32))  # "api" | "batch-pipeline" | ...
     image_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    label: Mapped[str] = mapped_column(String(64))
+    label: Mapped[str] = mapped_column(String(64), index=True)
     confidence: Mapped[float] = mapped_column(Float)
     is_defect: Mapped[bool] = mapped_column()
     report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

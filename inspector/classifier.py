@@ -65,7 +65,10 @@ class ResNetClassifier:
 
         model = models.resnet50(weights=None)
         model.fc = nn.Linear(model.fc.in_features, len(self.classes))
-        model.load_state_dict(torch.load(weights_path, map_location=device))
+        # weights_only=True refuses to unpickle arbitrary objects (code-exec guard)
+        model.load_state_dict(
+            torch.load(weights_path, map_location=device, weights_only=True)
+        )
         model.eval()
         self._model = model.to(device)
 
