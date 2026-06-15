@@ -1,5 +1,12 @@
 # Solar Inspector
 
+[![Live demo](https://img.shields.io/badge/▶_Live_demo-Google_Cloud_Run-4285F4?logo=googlecloud&logoColor=white)](https://solar-inspector-ui-573581836600.europe-west1.run.app)
+[![CI](https://github.com/alexissmtt/solar-defect-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/alexissmtt/solar-defect-inspector/actions)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+
 A visual quality-inspection service: it classifies the condition of a solar
 panel from a photo and generates a maintenance report, exposed as a deployable
 HTTP API with a persistent record of every inspection.
@@ -14,14 +21,14 @@ stages on 1,574 labelled images). This repository is about everything around the
 model: turning a notebook prototype into a service you can run, test, deploy and
 monitor.
 
-## Live demo
+## Live demo — deployed on Google Cloud Run
 
-Two services on **Google Cloud Run** (a UI and the API it calls):
+**▶️ Try the web app:** https://solar-inspector-ui-573581836600.europe-west1.run.app
 
-- **Web app** — upload an image, get the diagnosis and report:
-  **https://solar-inspector-ui-573581836600.europe-west1.run.app**
-- **API** — the engine behind it; interactive docs at
-  [`/docs`](https://solar-inspector-573581836600.europe-west1.run.app/docs)
+Upload a panel photo and get the defect class, a confidence score and an
+auto-generated maintenance report. The UI is one Cloud Run service; the
+[API behind it](https://solar-inspector-573581836600.europe-west1.run.app/docs)
+is another.
 
 > Both scale to zero, so the first request after an idle period takes a few
 > seconds to warm up.
