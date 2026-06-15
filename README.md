@@ -26,9 +26,7 @@ monitor.
 **▶️ Try the web app:** https://solar-inspector-ui-573581836600.europe-west1.run.app
 
 Upload a panel photo and get the defect class, a confidence score and an
-auto-generated maintenance report. The UI is one Cloud Run service; the
-[API behind it](https://solar-inspector-573581836600.europe-west1.run.app/docs)
-is another.
+auto-generated maintenance report.
 
 > Both scale to zero, so the first request after an idle period takes a few
 > seconds to warm up.
@@ -100,6 +98,9 @@ without touching code. The columns below also describe what the live demo runs.
 | Store      | embedded SQLite            | PostgreSQL (used by `docker-compose`)            |
 
 ## API
+
+A separate Cloud Run service, with interactive OpenAPI docs for developers at
+[`/docs`](https://solar-inspector-573581836600.europe-west1.run.app/docs).
 
 | Method | Path                  | Purpose                                  |
 |--------|-----------------------|------------------------------------------|
