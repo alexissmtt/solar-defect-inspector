@@ -1,0 +1,53 @@
+# Local production-like stack: Postgres + API + Streamlit frontend.
+# Mirrors the QIMA data stack (PostgreSQL, containerised services).
+#
+#   docker compose up --build
+#   API   -> http://localhost:8000/docs
+#   UI    -> http://localhost:8501
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: inspector
+      POSTGRES_PASSWORD: inspector
+      POSTGRES_DB: inspector
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inspector"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      INSPECTOR_DATABASE_URL: postgresql+psycopg://inspector:inspector@db:5432/inspector
+      INSPECTOR_AUTO_CREATE_TABLES: "false"
+      INSPECTOR_CLASSIFIER_BACKEND: torch
+      INSPECTOR_REPORTER_BACKEND: ${INSPECTOR_REPORTER_BACKEND:-template}
+      INSPECTOR_GROQ_API_KEY: ${INSPECTOR_GROQ_API_KEY:-}
+    # Apply migrations, then serve. Migrations are the prod-safe alternative to
+    # auto-creating tables on boot.
+    command: sh -c "alembic upgrade head && uvicorn inspector.api:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      INSPECTOR_API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

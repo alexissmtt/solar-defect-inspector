@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inspector-config
+data:
+  INSPECTOR_AUTO_CREATE_TABLES: "false"
+  INSPECTOR_CLASSIFIER_BACKEND: "torch"
+  INSPECTOR_REPORTER_BACKEND: "groq"
+  INSPECTOR_MODEL_REPO: "Alexissmt/solar-defect-inspector"
+  INSPECTOR_STORAGE_BACKEND: "gcs"
+  INSPECTOR_GCS_BUCKET: "qima-inspection-incoming"
