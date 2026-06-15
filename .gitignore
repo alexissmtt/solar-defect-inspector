@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# local data / models / db
+*.db
+*.pth
+.cache/
+data/incoming/*
+!data/incoming/.gitkeep
+
+# secrets
+.env
+
+# OS / editor cruft
+.DS_Store
+.Rhistory

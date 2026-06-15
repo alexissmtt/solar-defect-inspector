@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solar-inspector"
+version = "2.0.0"
+description = "Visual quality-inspection service: defect classification + automated reports, exposed as a deployable API"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "sqlalchemy>=2.0",
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "python-multipart>=0.0.9",
+    "Pillow>=10.0",
+    "prometheus-client>=0.20",
+    "httpx>=0.26",
+    "alembic>=1.13",
+]
+
+[project.optional-dependencies]
+# The computer-vision runtime is heavy (torch). It is only needed in the
+# production image, never for the test suite, which runs against the stub
+# backend. Keeping it as an extra is what lets CI stay fast.
+cv = ["torch>=2.0", "torchvision>=0.15"]
+llm = ["groq>=0.11"]
+gcs = ["google-cloud-storage>=2.14"]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=7.4", "ruff>=0.4"]
+
+[project.scripts]
+inspector-batch = "inspector.pipeline:main"
+
+[tool.setuptools.packages.find]
+include = ["inspector*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+# UP (pyupgrade) is intentionally omitted: this project targets 3.9 and relies
+# on runtime-evaluated annotations (pydantic, SQLAlchemy), where `X | None` and
+# `list[...]` are not safe. B008 is the standard FastAPI `Depends(...)` pattern.
+select = ["E", "F", "I", "B"]
+ignore = ["B008"]

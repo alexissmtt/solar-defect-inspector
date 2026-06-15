@@ -1,0 +1,3 @@
+# The frontend is a thin HTTP client; it needs no model dependencies.
+streamlit>=1.32
+httpx>=0.26

@@ -1,102 +1,112 @@
-<div align="center">
+# Solar Inspector
 
-# 🔆 Solar Defect Inspector
+A visual quality-inspection service: it classifies the condition of a solar
+panel from a photo and generates a maintenance report, exposed as a deployable
+HTTP API with a persistent record of every inspection.
 
-**Automated solar panel defect detection powered by Computer Vision & Generative AI**
+The computer-vision model is demonstrated on solar panels, but the architecture
+is domain-agnostic — the same pipeline (classify an image, attach a report,
+store and serve the result) applies to defect inspection of any manufactured
+product.
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://alexissmtt-solar-defect-inspector-app-mj0a3o.streamlit.app/)
-![Python](https://img.shields.io/badge/Python-3.10-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+The model itself reaches **94.7% test accuracy** (ResNet-50 fine-tuned in two
+stages on 1,574 labelled images). This repository is about everything around the
+model: turning a notebook prototype into a service you can run, test, deploy and
+monitor.
 
-</div>
+## Architecture
 
----
+The inspection logic does not depend on how it is delivered. A single core is
+driven by three thin adapters:
 
-## 🧠 What it does
-
-Upload a photo of a solar panel — the system identifies the defect type in under 2 seconds and generates a structured maintenance report automatically.
-
-No manual inspection. No human bottleneck.
-
----
-
-## ⚡ Live Demo
-
-👉 **[Try it here](https://alexissmtt-solar-defect-inspector-app-mj0a3o.streamlit.app/)**
-
----
-
-## 🔍 Detected Defect Classes
-
-| Class | Description |
-|---|---|
-| 🟢 Clean | Panel in perfect condition |
-| 🟡 Dusty | Surface contaminated with dust |
-| 🟡 Bird-drop | Contaminated with bird droppings |
-| 🔴 Electrical-damage | Hot spots, delamination, electrical faults |
-| 🔴 Physical-Damage | Cracks, broken glass, mechanical damage |
-| 🟡 Snow-Covered | Panel partially or fully covered with snow |
-
----
-
-## 🏗️ Architecture
 ```
-Image input
-    │
-    ▼
-ResNet-50 (fine-tuned)  ──►  Defect class + confidence score
-                                        │
-                                        ▼
-                            LLaMA 3.3 70B (Groq)
-                                        │
-                                        ▼
-                            Structured maintenance report
-                          (severity / action / production loss)
+            ┌──────────────── core (no web, no UI) ─────────────────┐
+            │  classifier ──► reporter ──► repository (PostgreSQL)   │
+            └───────────────────────────────────────────────────────┘
+                  ▲                  ▲                    ▲
+       ┌──────────┴────────┐ ┌───────┴───────┐  ┌─────────┴─────────┐
+       │  FastAPI (/inspect)│ │ batch pipeline │  │ Streamlit (client)│
+       │  real-time         │ │ folder / GCS   │  │ calls the API     │
+       └────────────────────┘ └────────────────┘  └───────────────────┘
 ```
 
----
+- **`classifier`** — `ResNetClassifier` (the fine-tuned model) or a deterministic
+  `StubClassifier`. Both implement one interface, so the rest of the system runs
+  and is tested without torch installed.
+- **`reporter`** — `GroqReporter` (Llama 3.3 70B) or a rule-based
+  `TemplateReporter` used as a test double and as a fallback when no LLM key is
+  set.
+- **`service`** — the use case: classify → report (only if a defect) → persist →
+  emit metrics. Used identically by the API and the batch pipeline.
+- **`db`** — SQLAlchemy 2.0 model + repository; schema managed with Alembic.
 
-## 📊 Model Performance
+## Quickstart
 
-| Metric | Score |
-|---|---|
-| Validation accuracy | 97.3% |
-| Test accuracy | 94.7% |
-| Training time | ~15 min on T4 GPU |
-| Inference time | < 2 seconds |
+Runs with zero configuration (SQLite + stub classifier + template reporter):
 
-**Training details**
-- Base model: ResNet-50 pre-trained on ImageNet (1M images)
-- Fine-tuning: 2-stage — FC layer first, then layer4 unfrozen with lower learning rate
-- Dataset: 1,574 labeled solar panel images (train / val / test split)
-- Hardware: Google Colab T4 GPU (CUDA)
-
----
-
-## 🛠️ Stack
-
-| Component | Technology |
-|---|---|
-| Computer Vision | PyTorch, Torchvision, ResNet-50 |
-| Generative AI | LLaMA 3.3 70B via Groq API |
-| Frontend | Streamlit |
-| Model hosting | Hugging Face |
-| Dataset | Kaggle — PV Panel Defect Dataset |
-
----
-
-## 🚀 Run locally
 ```bash
-git clone https://github.com/alexissmtt/solar-defect-inspector
-cd solar-defect-inspector
-pip install -r requirements.txt
-export GROQ_API_KEY="your_key_here"
-streamlit run app.py
+pip install -e ".[dev]"
+make run          # API on http://localhost:8000/docs
 ```
 
----
+```bash
+curl -F "file=@panel.jpg" http://localhost:8000/inspect
+```
 
-<div align="center">
-Made by <a href="https://github.com/alexissmtt">Alexis Mattei</a>
-</div>
+To run the real model and LLM, install the extras and switch backends:
+
+```bash
+pip install -e ".[dev,cv,llm]"
+INSPECTOR_CLASSIFIER_BACKEND=torch INSPECTOR_REPORTER_BACKEND=groq \
+  INSPECTOR_GROQ_API_KEY=gsk_... make run
+```
+
+## Full stack with Docker
+
+`docker compose up --build` starts PostgreSQL, the API and the Streamlit UI, runs
+the Alembic migration on boot, and wires them together:
+
+- API + docs: http://localhost:8000/docs
+- UI: http://localhost:8501
+
+## API
+
+| Method | Path                  | Purpose                                  |
+|--------|-----------------------|------------------------------------------|
+| GET    | `/health`             | Liveness and active backends             |
+| POST   | `/inspect`            | Classify one uploaded image, store, return |
+| GET    | `/inspections`        | Recent inspection history                |
+| GET    | `/inspections/{id}`   | A single inspection                      |
+| GET    | `/metrics`            | Prometheus metrics                       |
+
+## Batch ingestion
+
+`inspector-batch` runs the same inspection over a whole batch of images from a
+local folder or a GCS bucket, writing the results to the database — the path you
+would schedule as a CronJob for nightly factory uploads.
+
+```bash
+INSPECTOR_STORAGE_ROOT=./data/incoming inspector-batch --verbose
+```
+
+## Tests
+
+```bash
+ruff check . && pytest
+```
+
+The suite covers the classifier, reporter, service, API (via `TestClient`) and
+the batch pipeline. It runs against SQLite and the stub backends, so it needs no
+GPU, no model download and no API key — which is what keeps CI fast (see
+`.github/workflows/ci.yml`).
+
+## Deployment
+
+Container image plus a Postgres database; runs on Cloud Run or GKE. See
+[`deploy/README.md`](deploy/README.md).
+
+## Stack
+
+Python · FastAPI · PyTorch (ResNet-50) · Llama 3.3 70B (Groq) · SQLAlchemy ·
+Alembic · PostgreSQL · Prometheus · Docker · Kubernetes · Google Cloud · pytest ·
+GitHub Actions.

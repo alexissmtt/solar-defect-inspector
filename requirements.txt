@@ -1,5 +1,18 @@
-streamlit
-torch
-torchvision
-Pillow
-groq
+# Runtime dependencies for the API container (inspector.api).
+# Kept in sync with pyproject.toml; the production image needs the cv/llm/gcs/
+# postgres extras, so they are pinned here.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+sqlalchemy>=2.0
+pydantic>=2.5
+pydantic-settings>=2.1
+python-multipart>=0.0.9
+Pillow>=10.0
+prometheus-client>=0.20
+httpx>=0.26
+alembic>=1.13
+psycopg[binary]>=3.1
+torch>=2.0
+torchvision>=0.15
+groq>=0.11
+google-cloud-storage>=2.14
