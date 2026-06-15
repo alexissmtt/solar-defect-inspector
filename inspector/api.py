@@ -17,6 +17,7 @@ import io
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile
+from fastapi.responses import RedirectResponse
 from PIL import Image, UnidentifiedImageError
 
 from . import __version__, metrics
@@ -55,6 +56,11 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             repository=InspectionRepository(session),
             model_backend=settings.classifier_backend,
         )
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        # Land on the interactive API docs when the base URL is opened.
+        return RedirectResponse(url="/docs")
 
     @app.get("/health", response_model=HealthOut)
     def health() -> HealthOut:
