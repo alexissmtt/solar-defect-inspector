@@ -33,6 +33,35 @@ is another.
 > Both scale to zero, so the first request after an idle period takes a few
 > seconds to warm up.
 
+## The model
+
+A **ResNet-50** fine-tuned to classify the condition of a solar panel into six
+classes:
+
+| Class | Meaning |
+|-------|---------|
+| Clean | healthy panel |
+| Dusty | dust accumulation |
+| Bird-drop | bird droppings |
+| Snow-Covered | partial or full snow cover |
+| Electrical-damage | hot spots, delamination, electrical faults |
+| Physical-Damage | cracks, broken glass, mechanical damage |
+
+**Approach** — transfer learning on ResNet-50 (pre-trained on ImageNet),
+fine-tuned in **two stages**: first the classifier head, then `layer4` unfrozen
+with a lower learning rate. Trained on **1,574 labelled images** (Kaggle PV panel
+defect dataset) on a Colab T4 GPU.
+
+| Metric | Score |
+|--------|-------|
+| Validation accuracy | 97.3% |
+| Test accuracy | **94.7%** |
+| Inference | < 2 s |
+
+When a defect is detected, the prediction is turned into a maintenance report —
+severity, recommended action and estimated production loss — by the Groq / Llama
+3.3 70B reporter, or a rule-based template when no LLM key is set.
+
 ## Architecture
 
 The inspection logic does not depend on how it is delivered. A single core is
