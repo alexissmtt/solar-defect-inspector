@@ -19,3 +19,7 @@ data/incoming/*
 # OS / editor cruft
 .DS_Store
 .Rhistory
+
+# datasets / archives (never commit large data)
+*.zip
+data/raw/

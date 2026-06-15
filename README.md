@@ -3,9 +3,11 @@
 [![Live demo](https://img.shields.io/badge/▶_Live_demo-Google_Cloud_Run-4285F4?logo=googlecloud&logoColor=white)](https://solar-inspector-ui-573581836600.europe-west1.run.app)
 [![CI](https://github.com/alexissmtt/solar-defect-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/alexissmtt/solar-defect-inspector/actions)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-ResNet--50-EE4C2C?logo=pytorch&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+[![Model on Hugging Face](https://img.shields.io/badge/Model-Hugging_Face-FFD21E?logo=huggingface&logoColor=black)](https://huggingface.co/Alexissmt/solar-defect-inspector)
 
 A visual quality-inspection service: it classifies the condition of a solar
 panel from a photo and generates a maintenance report, exposed as a deployable
@@ -45,16 +47,25 @@ classes:
 | Electrical-damage | hot spots, delamination, electrical faults |
 | Physical-Damage | cracks, broken glass, mechanical damage |
 
-**Approach** — transfer learning on ResNet-50 (pre-trained on ImageNet),
-fine-tuned in **two stages**: first the classifier head, then `layer4` unfrozen
-with a lower learning rate. Trained on **1,574 labelled images** (Kaggle PV panel
-defect dataset) on a Colab T4 GPU.
+**Training** ([`notebooks/training.ipynb`](notebooks/training.ipynb)) — transfer
+learning from ImageNet weights, in two stages:
+
+1. freeze the backbone, train only the classifier head — Adam, lr 1e-3, 10 epochs
+2. unfreeze `layer4` and continue — Adam, lr 1e-4 on `layer4` + 1e-3 on the head,
+   10 epochs
+
+Data: a [Kaggle solar-panel defect dataset](https://www.kaggle.com/datasets/pythonafroz/solar-panel-images-for-deep-learning),
+split **929 / 550 / 95** (train / val / test, 1,574 images), trained on a Colab T4
+GPU. The weights are published on
+[Hugging Face](https://huggingface.co/Alexissmt/solar-defect-inspector).
 
 | Metric | Score |
 |--------|-------|
-| Validation accuracy | 97.3% |
-| Test accuracy | **94.7%** |
-| Inference | < 2 s |
+| Validation accuracy | 96.0% |
+| Test accuracy | **94.7%** (90/95) |
+
+> Reproducible — loading the published weights and evaluating the test split
+> gives these exact numbers.
 
 When a defect is detected, the prediction is turned into a maintenance report —
 severity, recommended action and estimated production loss — by the Groq / Llama

@@ -45,6 +45,8 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+# exploratory training notebook is not held to production lint rules
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 # UP (pyupgrade) is intentionally omitted: this project targets 3.9 and relies
