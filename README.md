@@ -16,13 +16,15 @@ monitor.
 
 ## Live demo
 
-Deployed on **Google Cloud Run**:
-**https://solar-inspector-573581836600.europe-west1.run.app**
-— interactive API docs at
-[`/docs`](https://solar-inspector-573581836600.europe-west1.run.app/docs).
+Two services on **Google Cloud Run** (a UI and the API it calls):
 
-> The service runs the fine-tuned model and scales to zero, so the first request
-> after an idle period takes a few seconds to warm up.
+- **Web app** — upload an image, get the diagnosis and report:
+  **https://solar-inspector-ui-573581836600.europe-west1.run.app**
+- **API** — the engine behind it; interactive docs at
+  [`/docs`](https://solar-inspector-573581836600.europe-west1.run.app/docs)
+
+> Both scale to zero, so the first request after an idle period takes a few
+> seconds to warm up.
 
 ## Architecture
 
