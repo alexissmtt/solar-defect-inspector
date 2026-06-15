@@ -40,7 +40,7 @@ driven by three thin adapters:
 
 ```
             ┌──────────────── core (no web, no UI) ─────────────────┐
-            │  classifier ──► reporter ──► repository (PostgreSQL)   │
+            │  classifier ──► reporter ──► repository (database)     │
             └───────────────────────────────────────────────────────┘
                   ▲                  ▲                    ▲
        ┌──────────┴────────┐ ┌───────┴───────┐  ┌─────────┴─────────┐
@@ -59,34 +59,16 @@ driven by three thin adapters:
   emit metrics. Used identically by the API and the batch pipeline.
 - **`db`** — SQLAlchemy 2.0 model + repository; schema managed with Alembic.
 
-## Quickstart
+## Configuration
 
-Runs with zero configuration (SQLite + stub classifier + template reporter):
+Every part is selected through environment variables, so it can be swapped
+without touching code. The columns below also describe what the live demo runs.
 
-```bash
-pip install -e ".[dev]"
-make run          # API on http://localhost:8000/docs
-```
-
-```bash
-curl -F "file=@panel.jpg" http://localhost:8000/inspect
-```
-
-To run the real model and LLM, install the extras and switch backends:
-
-```bash
-pip install -e ".[dev,cv,llm]"
-INSPECTOR_CLASSIFIER_BACKEND=torch INSPECTOR_REPORTER_BACKEND=groq \
-  INSPECTOR_GROQ_API_KEY=gsk_... make run
-```
-
-## Full stack with Docker
-
-`docker compose up --build` starts PostgreSQL, the API and the Streamlit UI, runs
-the Alembic migration on boot, and wires them together:
-
-- API + docs: http://localhost:8000/docs
-- UI: http://localhost:8501
+| Concern    | Live demo (default)        | Other option                                     |
+|------------|----------------------------|--------------------------------------------------|
+| Classifier | fine-tuned ResNet-50       | deterministic stub (used by the test suite)      |
+| Reporter   | rule-based template        | Groq / Llama 3.3 70B (`INSPECTOR_GROQ_API_KEY`)  |
+| Store      | embedded SQLite            | PostgreSQL (used by `docker-compose`)            |
 
 ## API
 
@@ -121,8 +103,9 @@ GPU, no model download and no API key — which is what keeps CI fast (see
 
 ## Deployment
 
-Container image plus a Postgres database; runs on Cloud Run or GKE. See
-[`deploy/README.md`](deploy/README.md).
+Live on **Google Cloud Run** — two services, the API and the Streamlit UI (see
+the links at the top). The same container also runs on Kubernetes; manifests are
+in [`deploy/`](deploy/README.md).
 
 ## Stack
 
