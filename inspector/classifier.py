@@ -96,7 +96,14 @@ class ResNetClassifier:
         local_path = os.path.join(cache_dir, filename)
         if not os.path.exists(local_path):
             url = f"https://huggingface.co/{repo}/resolve/main/{filename}"
-            urllib.request.urlretrieve(url, local_path)
+            tmp_path = local_path + ".tmp"
+            try:
+                urllib.request.urlretrieve(url, tmp_path)
+                os.replace(tmp_path, local_path)
+            except Exception:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                raise
         return cls(local_path, classes=classes)
 
     def predict(self, image: Image.Image) -> Prediction:
@@ -123,8 +130,11 @@ class StubClassifier:
         top = 60.0 + (seed % 4000) / 100.0  # in [60, 100)
         remaining = 100.0 - top
         others = [c for i, c in enumerate(self.classes) if i != idx]
-        share = remaining / len(others)
-        percentages = {c: share for c in others}
+        if others:
+            share = remaining / len(others)
+            percentages = {c: share for c in others}
+        else:
+            percentages = {}
         percentages[self.classes[idx]] = top
         return Prediction(
             label=self.classes[idx],

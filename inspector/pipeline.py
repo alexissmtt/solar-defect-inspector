@@ -53,11 +53,7 @@ def run_batch(
     }
 
 
-def build_service(settings: Settings) -> InspectionService:
-    engine, session_factory = create_engine_and_session(settings.database_url)
-    if settings.auto_create_tables:
-        Base.metadata.create_all(engine)
-    session = session_factory()
+def build_service(settings: Settings, session) -> InspectionService:
     return InspectionService(
         classifier=build_classifier(settings),
         reporter=build_reporter(settings),
@@ -78,9 +74,16 @@ def main() -> None:
     )
 
     settings = get_settings()
+    engine, session_factory = create_engine_and_session(settings.database_url)
+    if settings.auto_create_tables:
+        Base.metadata.create_all(engine)
     store = build_store(settings)
-    service = build_service(settings)
-    summary = run_batch(store, service, source=args.source_label)
+    session = session_factory()
+    try:
+        service = build_service(settings, session)
+        summary = run_batch(store, service, source=args.source_label)
+    finally:
+        session.close()
     print(
         f"processed={summary['processed']} defects={summary['defects']} "
         f"by_label={summary['by_label']}"

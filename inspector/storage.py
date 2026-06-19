@@ -32,7 +32,10 @@ class LocalObjectStore:
         )
 
     def read(self, key: str) -> bytes:
-        return (self.root / key).read_bytes()
+        resolved = (self.root / key).resolve()
+        if not resolved.is_relative_to(self.root.resolve()):
+            raise ValueError(f"Key {key!r} escapes the storage root")
+        return resolved.read_bytes()
 
 
 class GCSObjectStore:

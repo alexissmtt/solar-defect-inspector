@@ -9,7 +9,8 @@ from tests.conftest import make_image_bytes
 
 @pytest.fixture
 def client(settings):
-    return TestClient(create_app(settings))
+    with TestClient(create_app(settings)) as c:
+        yield c
 
 
 def test_root_redirects_to_docs(client):
@@ -85,7 +86,7 @@ def test_inspect_rejects_oversized_upload(tmp_path):
     settings = Settings(
         database_url=f"sqlite:///{tmp_path / 'big.db'}", max_upload_bytes=10
     )
-    client = TestClient(create_app(settings))
-    payload = make_image_bytes(size=(256, 256))  # any real PNG exceeds 10 bytes
-    response = client.post("/inspect", files={"file": ("big.png", payload, "image/png")})
-    assert response.status_code == 413
+    with TestClient(create_app(settings)) as client:
+        payload = make_image_bytes(size=(256, 256))  # any real PNG exceeds 10 bytes
+        response = client.post("/inspect", files={"file": ("big.png", payload, "image/png")})
+        assert response.status_code == 413

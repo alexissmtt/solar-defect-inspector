@@ -14,9 +14,10 @@ safe to share); a fresh database session is created per request.
 from __future__ import annotations
 
 import io
+from contextlib import asynccontextmanager
 from typing import List, Optional
 
-from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse
 from PIL import Image, UnidentifiedImageError
@@ -37,23 +38,32 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     if settings.auto_create_tables:
         Base.metadata.create_all(engine)
 
-    # Shared, read-only collaborators built once.
-    classifier = build_classifier(settings)
-    reporter = build_reporter(settings)
+    # Defer I/O-heavy init (model download) to startup so importing this
+    # module never blocks on network access.
+    _shared: dict = {}
 
-    app = FastAPI(title="Solar Inspector", version=__version__)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        _shared["classifier"] = build_classifier(settings)
+        _shared["reporter"] = build_reporter(settings)
+        yield
+
+    app = FastAPI(title="Solar Inspector", version=__version__, lifespan=lifespan)
 
     def get_session():
         session = session_factory()
         try:
             yield session
+        except Exception:
+            session.rollback()
+            raise
         finally:
             session.close()
 
     def get_service(session=Depends(get_session)) -> InspectionService:
         return InspectionService(
-            classifier=classifier,
-            reporter=reporter,
+            classifier=_shared["classifier"],
+            reporter=_shared["reporter"],
             repository=InspectionRepository(session),
             model_backend=settings.classifier_backend,
         )
@@ -93,8 +103,8 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 
     @app.get("/inspections", response_model=List[InspectionOut])
     def list_inspections(
-        limit: int = 50,
-        offset: int = 0,
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0),
         session=Depends(get_session),
     ) -> List[InspectionOut]:
         records = InspectionRepository(session).list(limit=limit, offset=offset)

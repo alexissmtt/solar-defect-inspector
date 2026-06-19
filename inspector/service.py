@@ -7,6 +7,7 @@ report when a defect is found, persists the record and emits metrics.
 
 from __future__ import annotations
 
+import logging
 import time
 
 from PIL import Image
@@ -15,6 +16,8 @@ from . import metrics
 from .classifier import Classifier
 from .db import Inspection, InspectionRepository
 from .reporter import Reporter
+
+_logger = logging.getLogger(__name__)
 
 
 class InspectionService:
@@ -33,7 +36,18 @@ class InspectionService:
     def inspect(self, image: Image.Image, source: str, image_name: str = None) -> Inspection:
         start = time.perf_counter()
         prediction = self._classifier.predict(image)
-        report = self._reporter.generate(prediction) if prediction.is_defect else None
+        report = None
+        if prediction.is_defect:
+            try:
+                report = self._reporter.generate(prediction)
+            except Exception:
+                _logger.warning(
+                    "Reporter failed for %s, using template fallback",
+                    prediction.label,
+                    exc_info=True,
+                )
+                from .reporter import TemplateReporter
+                report = TemplateReporter().generate(prediction)
         latency_ms = (time.perf_counter() - start) * 1000
 
         record = self._repository.add(

@@ -9,7 +9,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: inspector
-      POSTGRES_PASSWORD: inspector
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inspector}
       POSTGRES_DB: inspector
     ports:
       - "5432:5432"
@@ -24,7 +24,7 @@ services:
   api:
     build: .
     environment:
-      INSPECTOR_DATABASE_URL: postgresql+psycopg://inspector:inspector@db:5432/inspector
+      INSPECTOR_DATABASE_URL: postgresql+psycopg://inspector:${POSTGRES_PASSWORD:-inspector}@db:5432/inspector
       INSPECTOR_AUTO_CREATE_TABLES: "false"
       INSPECTOR_CLASSIFIER_BACKEND: torch
       INSPECTOR_REPORTER_BACKEND: ${INSPECTOR_REPORTER_BACKEND:-template}
