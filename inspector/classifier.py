@@ -1,16 +1,3 @@
-"""Defect classification.
-
-`Classifier` is the interface the rest of the system depends on. Two
-implementations satisfy it:
-
-* `ResNetClassifier` wraps the fine-tuned ResNet-50 (the real model).
-* `StubClassifier` is a deterministic stand-in that needs no torch and no model
-  download, so tests and local demos run instantly.
-
-Because everything downstream depends on the `Classifier` interface rather than
-on torch, the service layer is testable without the heavy CV stack installed.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -28,7 +15,7 @@ DEFAULT_CLASSES = [
     "Snow-Covered",
 ]
 
-# ImageNet normalisation, matching the training pipeline of the ResNet-50.
+# ImageNet normalisation
 _MEAN = [0.485, 0.456, 0.406]
 _STD = [0.229, 0.224, 0.225]
 
@@ -51,9 +38,6 @@ class Classifier(Protocol):
 
 
 class ResNetClassifier:
-    """The fine-tuned ResNet-50. torch/torchvision are imported lazily so the
-    module can be imported (and the interface used) without them installed."""
-
     def __init__(self, weights_path: str, classes: List[str] = None, device: str = "cpu"):
         import torch
         from torch import nn
@@ -67,7 +51,7 @@ class ResNetClassifier:
         model.fc = nn.Linear(model.fc.in_features, len(self.classes))
         # weights_only=True refuses to unpickle arbitrary objects (code-exec guard)
         model.load_state_dict(
-            torch.load(weights_path, map_location=device, weights_only=True)
+            torch.load(weights_path, map_location=device, weights_only=True)  # rejects arbitrary pickle objects
         )
         model.eval()
         self._model = model.to(device)
@@ -88,7 +72,6 @@ class ResNetClassifier:
         cache_dir: str = ".cache",
         classes: List[str] = None,
     ) -> "ResNetClassifier":
-        """Download the weights from the Hugging Face Hub once, then load."""
         import os
         import urllib.request
 
@@ -117,9 +100,6 @@ class ResNetClassifier:
 
 
 class StubClassifier:
-    """Deterministic classifier: the label is a stable function of the image
-    content. Used by the test suite and the no-dependency local demo."""
-
     def __init__(self, classes: List[str] = None):
         self.classes = list(classes or DEFAULT_CLASSES)
 

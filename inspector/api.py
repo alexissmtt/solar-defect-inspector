@@ -1,16 +1,3 @@
-"""FastAPI application: the real-time delivery mechanism.
-
-Endpoints:
-    GET  /health            liveness + which backends are active
-    POST /inspect           classify one uploaded image, store and return it
-    GET  /inspections       recent inspection history
-    GET  /inspections/{id}  one inspection
-    GET  /metrics           Prometheus metrics
-
-The classifier and reporter are built once at startup (they are read-only and
-safe to share); a fresh database session is created per request.
-"""
-
 from __future__ import annotations
 
 import io
@@ -38,8 +25,6 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     if settings.auto_create_tables:
         Base.metadata.create_all(engine)
 
-    # Defer I/O-heavy init (model download) to startup so importing this
-    # module never blocks on network access.
     _shared: dict = {}
 
     @asynccontextmanager
@@ -70,7 +55,6 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
-        # Land on the interactive API docs when the base URL is opened.
         return RedirectResponse(url="/docs")
 
     @app.get("/health", response_model=HealthOut)
@@ -96,8 +80,6 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             raise HTTPException(
                 status_code=400, detail="Uploaded file is not a valid image"
             ) from None
-        # Inference is CPU-bound and synchronous; run it off the event loop so a
-        # slow prediction does not block other requests.
         record = await run_in_threadpool(service.inspect, image, "api", file.filename)
         return InspectionOut.model_validate(record)
 

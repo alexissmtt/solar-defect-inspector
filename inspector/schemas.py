@@ -1,5 +1,3 @@
-"""Pydantic models for the HTTP boundary (request/response shapes)."""
-
 from __future__ import annotations
 
 from datetime import datetime

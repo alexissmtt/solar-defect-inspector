@@ -1,18 +1,9 @@
-"""Maintenance-report generation.
-
-`GroqReporter` calls Llama 3.3 70B for a written report (the original behaviour).
-`TemplateReporter` produces a structured report from a severity table with no
-external call, which serves both as a test double and as a graceful fallback
-when no API key is configured.
-"""
-
 from __future__ import annotations
 
 from typing import Protocol
 
 from .classifier import Prediction
 
-# Domain knowledge: how each defect class maps to severity / action / loss.
 _SEVERITY = {
     "Clean": "None",
     "Dusty": "Low",

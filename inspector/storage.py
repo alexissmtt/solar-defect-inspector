@@ -1,11 +1,3 @@
-"""Object storage for the batch ingestion pipeline.
-
-`LocalObjectStore` reads a directory; `GCSObjectStore` reads a Google Cloud
-Storage bucket. Both satisfy the same `ObjectStore` interface, so the pipeline
-does not care where images come from -- which is the point of "data integration
-from diverse sources".
-"""
-
 from __future__ import annotations
 
 from pathlib import Path

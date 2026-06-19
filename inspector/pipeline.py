@@ -1,11 +1,3 @@
-"""Batch ingestion pipeline.
-
-Reads a batch of images from an object store (a local folder or a GCS bucket),
-runs each through the same `InspectionService` the API uses, and writes the
-results to the database. Run it with `inspector-batch` or
-`python -m inspector.pipeline`.
-"""
-
 from __future__ import annotations
 
 import argparse

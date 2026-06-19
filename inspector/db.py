@@ -1,10 +1,3 @@
-"""Database layer: SQLAlchemy 2.0 ORM model, engine factory and repository.
-
-The persisted `inspections` table is what makes a result auditable after the
-fact: every prediction is stored with its confidence, the report, which model
-produced it and how long it took.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -55,8 +48,6 @@ def create_engine_and_session(database_url: str):
 
 
 class InspectionRepository:
-    """Thin data-access object so the service never writes SQL directly."""
-
     def __init__(self, session: Session):
         self._session = session
 

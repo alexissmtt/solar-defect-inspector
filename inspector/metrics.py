@@ -1,11 +1,3 @@
-"""Prometheus metrics, exposed at /metrics.
-
-These are what makes model behaviour observable in production: how many
-inspections ran, how many were defects, the latency distribution and the
-confidence of the most recent prediction. A drop in average confidence or a
-shift in the class mix is an early signal of data drift.
-"""
-
 from __future__ import annotations
 
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
@@ -42,5 +34,4 @@ def record(prediction: Prediction, source: str, latency_ms: float) -> None:
 
 
 def render() -> tuple:
-    """Return (payload, content_type) for the /metrics endpoint."""
     return generate_latest(), CONTENT_TYPE_LATEST

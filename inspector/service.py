@@ -1,10 +1,3 @@
-"""The inspection use-case, independent of any delivery mechanism.
-
-`InspectionService.inspect` is the single entry point used by the API, the batch
-pipeline and (indirectly) the frontend. It classifies an image, generates a
-report when a defect is found, persists the record and emits metrics.
-"""
-
 from __future__ import annotations
 
 import logging
